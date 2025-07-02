@@ -30,7 +30,6 @@
                                            id="taskName" 
                                            value="Buntzen Lake Reservation"
                                            required>
-                                    <div class="form-text">Descriptive name for this reservation task</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -43,7 +42,6 @@
                                         <option value="2" selected>Normal (2)</option>
                                         <option value="3">Low (3)</option>
                                     </select>
-                                    <div class="form-text">Task execution priority</div>
                                 </div>
                             </div>
                         </div>
@@ -56,7 +54,6 @@
                                       id="description" 
                                       rows="2" 
                                       placeholder="Optional description for this reservation">Automated Buntzen Lake reservation via YodelPass</textarea>
-                            <div class="form-text">Optional description of the reservation purpose</div>
                         </div>
 
                         <hr class="my-4">
@@ -114,21 +111,8 @@
                                       required></textarea>
                             <div class="form-text">
                                 <i class="fas fa-info-circle"></i>
-                                JWT token from YodelPass (get from web portal after logging in)
-                                <br>
-                                <small class="text-muted">
-                                    Example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMTAzNjcxMyIsImlzX3JhbmdlciI6IkZhbHNlIi...
-                                </small>
+                                JWT token from YodelPass (get from web console after logging in)
                             </div>
-                        </div>
-
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i>
-                            <strong>How it works:</strong>
-                            <ul class="mb-0 mt-2">
-                                <li>This creates a scheduled task that will execute at <strong>7:00 AM PST on the day before your reservation date</strong></li>
-                                <li>The task uses the YodelPass API to make the actual reservation</li>
-                            </ul>
                         </div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
@@ -218,15 +202,21 @@
         }
         
         try {
-            // Get the reservation date
+            // Get the reservation date (this is in local date, no time component)
             const reservationDate = new Date(reservationDateInput.value + 'T00:00:00');
             
             // Calculate execution date (day before reservation)
             const executionDate = new Date(reservationDate);
             executionDate.setDate(executionDate.getDate() - 1);
             
-            // Create execution datetime at 7 AM PST
-            const executionDateTime = new Date(executionDate.getFullYear(), executionDate.getMonth(), executionDate.getDate(), 7, 0, 0, 0);
+            // Create execution datetime at 7 AM PST/PDT using proper timezone handling
+            // Create a date in Pacific timezone at 7 AM
+            const pacificTimeStr = executionDate.toISOString().split('T')[0] + 'T07:00:00';
+            const executionDateTime = new Date(pacificTimeStr);
+            
+            // Convert from Pacific to local timezone for display
+            const pacificOffset = getPacificTimezoneOffset(executionDateTime);
+            const localExecutionTime = new Date(executionDateTime.getTime() - (pacificOffset * 60 * 1000));
             
             // Format dates for display
             const reservationDateStr = reservationDate.toLocaleDateString('en-US', {
@@ -266,8 +256,8 @@
             let displayText = `Task will execute on <strong>${executionDateStr}</strong> at <strong>${pstTimeStr} ${pstAbbr}</strong>`;
             
             // Add local time conversion if different timezone
-            if (localTimezone !== 'America/Los_Angeles') {
-                displayText += ` (<strong>${localTimeStr} ${localAbbr}</strong>)`;
+            if (localTimezone !== 'America/Los_Angeles' && localTimezone !== 'America/Vancouver') {
+            displayText += ` (<strong>${localTimeStr} ${localAbbr}</strong>)`;
             }
             
             displayText += ` to make your reservation for <strong>${reservationDateStr}</strong>.`;
@@ -302,19 +292,40 @@
         return abbreviations[timezone] || 'Local';
     }
     
+    function getPacificTimezoneOffset(date) {
+        // Create a date in Pacific timezone
+        const utcTime = date.getTime();
+        const pacificTime = new Date(utcTime + (date.getTimezoneOffset() * 60000));
+        
+        // Pacific timezone is UTC-8 in standard time, UTC-7 in daylight time
+        const isDST = isPacificDaylightTime(date);
+        const pacificOffset = isDST ? -7 * 60 : -8 * 60; // minutes
+        
+        return pacificOffset;
+    }
+    
     function isPacificDaylightTime(date) {
-        // Simplified DST check for Pacific timezone
-        // DST typically runs from second Sunday in March to first Sunday in November
+        // More accurate DST calculation for Pacific timezone
         const year = date.getFullYear();
-        const month = date.getMonth() + 1; // JavaScript months are 0-based
         
-        // Rough approximation: DST from March to November
-        if (month < 3 || month > 11) return false;
-        if (month > 3 && month < 11) return true;
+        // DST starts on second Sunday in March
+        const marchSecondSunday = getSecondSunday(year, 2); // March is month 2 (0-indexed)
         
-        // For March and November, this is a simplified check
-        // In practice, you'd want to calculate the exact DST dates
-        return month === 3 ? date.getDate() > 14 : date.getDate() < 7;
+        // DST ends on first Sunday in November
+        const novemberFirstSunday = getFirstSunday(year, 10); // November is month 10
+        
+        return date >= marchSecondSunday && date < novemberFirstSunday;
+    }
+    
+    function getSecondSunday(year, month) {
+        const firstDay = new Date(year, month, 1);
+        const firstSunday = new Date(year, month, 1 + (7 - firstDay.getDay()) % 7);
+        return new Date(year, month, firstSunday.getDate() + 7);
+    }
+    
+    function getFirstSunday(year, month) {
+        const firstDay = new Date(year, month, 1);
+        return new Date(year, month, 1 + (7 - firstDay.getDay()) % 7);
     }
 
     function setReservationDate(days) {
@@ -483,7 +494,7 @@
                             </div>
                             <div class="col-md-3">
                                 <div class="text-center">
-                                    <div class="small text-muted">Visit Date</div>
+                                    <div class="small text-muted">Reservation Date</div>
                                     <div class="fw-bold text-primary">${reservationDate}</div>
                                 </div>
                             </div>
@@ -542,19 +553,23 @@
                 throw new Error('Please select a reservation date');
             }
             
-            // Calculate execution date (day before reservation) at 7 AM PST
+            // Calculate execution date (day before reservation)
             const reservationDateObj = new Date(reservationDate + 'T00:00:00');
             const executionDate = new Date(reservationDateObj);
             executionDate.setDate(executionDate.getDate() - 1);
             
-            // Create execution datetime at 7 AM PST
-            const executionDateTime = new Date(executionDate.getFullYear(), executionDate.getMonth(), executionDate.getDate(), 7, 0, 0, 0);
+            // Create execution datetime at 7 AM Pacific Time
+            // Use proper timezone conversion to UTC
+            const executionDateStr = executionDate.toISOString().split('T')[0];
             
-            // Convert to UTC for server
-            // Adjust for Pacific timezone offset
-            const isPDT = isPacificDaylightTime(executionDateTime);
-            const pacificOffsetHours = isPDT ? 7 : 8; // Hours to add to get UTC
-            const utcTime = new Date(executionDateTime.getTime() + (pacificOffsetHours * 60 * 60 * 1000));
+            // Create the Pacific time (7 AM PST/PDT)
+            const pacificTimeStr = `${executionDateStr}T07:00:00`;
+            const tempDate = new Date(pacificTimeStr);
+            
+            // Convert Pacific time to UTC
+            const isDST = isPacificDaylightTime(tempDate);
+            const pacificOffsetHours = isDST ? 7 : 8; // Hours to add to convert PST/PDT to UTC
+            const utcTime = new Date(tempDate.getTime() + (pacificOffsetHours * 60 * 60 * 1000));
             
             // Gather form data
             const formData = {
@@ -571,7 +586,8 @@
             };
 
             // Validate required fields
-            if (!formData.parameters.includes('Date') || !formData.parameters.includes('AuthToken')) {
+            const params = JSON.parse(formData.parameters);
+            if (!params.Date || !params.AuthToken) {
                 throw new Error('Please fill in all required fields');
             }
 
