@@ -1,0 +1,638 @@
+@{
+    ViewData["Title"] = "Buntzen Lake Reservation";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-mountain"></i>
+                        Schedule Buntzen Lake Reservation
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        Create a scheduled task to make a Buntzen Lake reservation through YodelPass API.
+                        The task will automatically execute at <strong>7:00 AM PST on the day before your reservation date</strong>.
+                    </p>
+
+                    <form id="reservationForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="taskName" class="form-label">
+                                        <i class="fas fa-tag"></i> Task Name
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="taskName" 
+                                           value="Buntzen Lake Reservation"
+                                           required>
+                                    <div class="form-text">Descriptive name for this reservation task</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="priority" class="form-label">
+                                        <i class="fas fa-exclamation-circle"></i> Priority
+                                    </label>
+                                    <select class="form-select" id="priority">
+                                        <option value="1">High (1)</option>
+                                        <option value="2" selected>Normal (2)</option>
+                                        <option value="3">Low (3)</option>
+                                    </select>
+                                    <div class="form-text">Task execution priority</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">
+                                <i class="fas fa-align-left"></i> Description
+                            </label>
+                            <textarea class="form-control" 
+                                      id="description" 
+                                      rows="2" 
+                                      placeholder="Optional description for this reservation">Automated Buntzen Lake reservation via YodelPass</textarea>
+                            <div class="form-text">Optional description of the reservation purpose</div>
+                        </div>
+
+                        <hr class="my-4">
+                        <h5 class="text-primary">
+                            <i class="fas fa-cog"></i> Task Scheduling
+                        </h5>
+
+                        <hr class="my-4">
+                        <h5 class="text-success">
+                            <i class="fas fa-mountain"></i> Reservation Details
+                        </h5>
+
+                        <div class="alert alert-info" id="executionTimeAlert" style="display: none;">
+                            <i class="fas fa-clock"></i>
+                            <strong>Execution Schedule:</strong>
+                            <span id="executionTimeText">Task will execute at 7:00 AM PST on the day before your reservation.</span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="reservationDate" class="form-label">
+                                        <i class="fas fa-calendar-alt"></i> Reservation Date <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="date" 
+                                           class="form-control" 
+                                           id="reservationDate" 
+                                           required>
+                                    <div class="form-text">Date for the Buntzen Lake visit</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-magic"></i> Quick Date Selection
+                                    </label>
+                                    <div class="btn-group d-block" role="group">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="setReservationDate(1)">Tomorrow</button>
+                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="setNextWeekend('saturday')">Next Saturday</button>
+                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="setNextWeekend('sunday')">Next Sunday</button>
+                                    </div>
+                                    <div class="form-text">Quick date selection options</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="authToken" class="form-label">
+                                <i class="fas fa-key"></i> YodelPass Auth Token <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control font-monospace" 
+                                      id="authToken" 
+                                      rows="3" 
+                                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                                      required></textarea>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle"></i>
+                                JWT token from YodelPass (get from web portal after logging in)
+                                <br>
+                                <small class="text-muted">
+                                    Example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMTAzNjcxMyIsImlzX3JhbmdlciI6IkZhbHNlIi...
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>How it works:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>This creates a scheduled task that will execute at <strong>7:00 AM PST on the day before your reservation date</strong></li>
+                                <li>The task uses the YodelPass API to make the actual reservation</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-secondary me-md-2" onclick="clearForm()">
+                                <i class="fas fa-undo"></i> Clear
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-paper-plane"></i> Schedule Reservation Task
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="card mt-4" id="resultsCard" style="display: none;">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-check-circle"></i> Task Created Successfully
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="taskResult"></div>
+                    <div class="mt-3">
+                        <a href="/ScheduledTasks" class="btn btn-primary">
+                            <i class="fas fa-list"></i> View All Tasks
+                        </a>
+                        <button type="button" class="btn btn-outline-secondary" onclick="createAnother()">
+                            <i class="fas fa-plus"></i> Create Another
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Upcoming Reservations Section -->
+    <div class="row mt-4">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list"></i>
+                        Upcoming Reservations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="upcomingReservations">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            Loading upcoming reservations...
+                        </div>
+                    </div>
+                    <div class="mt-3 text-end">
+                        <button class="btn btn-outline-info btn-sm" onclick="loadUpcomingReservations()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Set default values on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set default reservation date to next Saturday
+        setNextWeekend('saturday');
+        
+        // Add event listener to update execution time display when reservation date changes
+        document.getElementById('reservationDate').addEventListener('change', updateExecutionTimeDisplay);
+        document.getElementById('reservationDate').addEventListener('input', updateExecutionTimeDisplay);
+        
+        // Load upcoming reservations
+        loadUpcomingReservations();
+    });
+
+    function updateExecutionTimeDisplay() {
+        const reservationDateInput = document.getElementById('reservationDate');
+        const executionTimeAlert = document.getElementById('executionTimeAlert');
+        const executionTimeText = document.getElementById('executionTimeText');
+        
+        if (!reservationDateInput.value) {
+            executionTimeAlert.style.display = 'none';
+            return;
+        }
+        
+        try {
+            // Get the reservation date
+            const reservationDate = new Date(reservationDateInput.value + 'T00:00:00');
+            
+            // Calculate execution date (day before reservation)
+            const executionDate = new Date(reservationDate);
+            executionDate.setDate(executionDate.getDate() - 1);
+            
+            // Create execution datetime at 7 AM PST
+            const executionDateTime = new Date(executionDate.getFullYear(), executionDate.getMonth(), executionDate.getDate(), 7, 0, 0, 0);
+            
+            // Format dates for display
+            const reservationDateStr = reservationDate.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            const executionDateStr = executionDate.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            // Format execution time in PST and local timezone
+            const pstTimeStr = executionDateTime.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+                timeZone: 'America/Los_Angeles'
+            });
+            
+            const localTimeStr = executionDateTime.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+            
+            // Get timezone abbreviations
+            const pstAbbr = isPacificDaylightTime(executionDateTime) ? 'PDT' : 'PST';
+            const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const localAbbr = getTimezoneAbbreviation(localTimezone);
+            
+            // Create the display text
+            let displayText = `Task will execute on <strong>${executionDateStr}</strong> at <strong>${pstTimeStr} ${pstAbbr}</strong>`;
+            
+            // Add local time conversion if different timezone
+            if (localTimezone !== 'America/Los_Angeles') {
+                displayText += ` (<strong>${localTimeStr} ${localAbbr}</strong>)`;
+            }
+            
+            displayText += ` to make your reservation for <strong>${reservationDateStr}</strong>.`;
+            
+            executionTimeText.innerHTML = displayText;
+            executionTimeAlert.style.display = 'block';
+            
+        } catch (e) {
+            console.log('Error updating execution time display:', e);
+            executionTimeAlert.style.display = 'none';
+        }
+    }
+    
+    function getTimezoneAbbreviation(timezone) {
+        // Common timezone abbreviations
+        const abbreviations = {
+            'America/Los_Angeles': 'PST/PDT',
+            'America/New_York': 'EST/EDT',
+            'America/Chicago': 'CST/CDT',
+            'America/Denver': 'MST/MDT',
+            'America/Phoenix': 'MST',
+            'America/Anchorage': 'AKST/AKDT',
+            'Pacific/Honolulu': 'HST',
+            'America/Toronto': 'EST/EDT',
+            'America/Vancouver': 'PST/PDT',
+            'Europe/London': 'GMT/BST',
+            'Europe/Paris': 'CET/CEST',
+            'Asia/Tokyo': 'JST',
+            'Australia/Sydney': 'AEST/AEDT'
+        };
+        
+        return abbreviations[timezone] || 'Local';
+    }
+    
+    function isPacificDaylightTime(date) {
+        // Simplified DST check for Pacific timezone
+        // DST typically runs from second Sunday in March to first Sunday in November
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1; // JavaScript months are 0-based
+        
+        // Rough approximation: DST from March to November
+        if (month < 3 || month > 11) return false;
+        if (month > 3 && month < 11) return true;
+        
+        // For March and November, this is a simplified check
+        // In practice, you'd want to calculate the exact DST dates
+        return month === 3 ? date.getDate() > 14 : date.getDate() < 7;
+    }
+
+    function setReservationDate(days) {
+        const date = new Date();
+        date.setDate(date.getDate() + days);
+        
+        // Format for date input (YYYY-MM-DD)
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        document.getElementById('reservationDate').value = `${year}-${month}-${day}`;
+        
+        // Update the execution time display
+        updateExecutionTimeDisplay();
+    }
+    
+    function setNextWeekend(dayType) {
+        const today = new Date();
+        const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+        
+        let targetDay;
+        let dayName;
+        
+        if (dayType === 'saturday') {
+            targetDay = 6; // Saturday
+            dayName = 'Saturday';
+        } else if (dayType === 'sunday') {
+            targetDay = 0; // Sunday
+            dayName = 'Sunday';
+        } else {
+            return; // Invalid day type
+        }
+        
+        // Calculate days until next occurrence of the target day
+        let daysUntilTarget;
+        
+        if (currentDay === targetDay) {
+            // If today is the target day, get next week's occurrence
+            daysUntilTarget = 7;
+        } else if (currentDay < targetDay) {
+            // Target day is later this week
+            daysUntilTarget = targetDay - currentDay;
+        } else {
+            // Target day is next week
+            daysUntilTarget = 7 - currentDay + targetDay;
+        }
+        
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + daysUntilTarget);
+        
+        // Format for date input (YYYY-MM-DD)
+        const year = targetDate.getFullYear();
+        const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+        const day = String(targetDate.getDate()).padStart(2, '0');
+        
+        document.getElementById('reservationDate').value = `${year}-${month}-${day}`;
+        
+        // Update the execution time display
+        updateExecutionTimeDisplay();
+    }
+
+    function clearForm() {
+        document.getElementById('reservationForm').reset();
+        document.getElementById('resultsCard').style.display = 'none';
+        document.getElementById('executionTimeAlert').style.display = 'none';
+        
+        // Reset to defaults  
+        setNextWeekend('saturday');
+    }
+
+    function createAnother() {
+        clearForm();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    async function loadUpcomingReservations() {
+        const container = document.getElementById('upcomingReservations');
+        
+        try {
+            // Show loading state
+            container.innerHTML = `
+                <div class="text-center text-muted">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Loading upcoming reservations...
+                </div>
+            `;
+            
+            // Fetch BuntzenReservation tasks from the API
+            const response = await fetch('/api/scheduledtasks?taskType=ReserveBuntzen');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const tasks = await response.json();
+            
+            // Filter for pending/running tasks and sort by scheduled time
+            const upcomingTasks = tasks
+                .filter(task => ['Pending', 'Running'].includes(task.Status))
+                .sort((a, b) => new Date(a.ScheduledTime) - new Date(b.ScheduledTime))
+                .slice(0, 5); // Get next 5 tasks
+            
+            if (upcomingTasks.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-calendar-times fa-2x mb-2"></i>
+                        <p class="mb-0">No upcoming reservations scheduled</p>
+                        <small>Create a new reservation above to get started!</small>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Build the HTML for upcoming tasks
+            let html = '<div class="list-group list-group-flush">';
+            
+            upcomingTasks.forEach((task, index) => {
+                const scheduledDate = new Date(task.ScheduledTime);
+                const now = new Date();
+                const isOverdue = scheduledDate < now;
+                
+                // Parse parameters to get reservation date
+                let reservationDate = 'Unknown';
+                try {
+                    const params = JSON.parse(task.Parameters);
+                    reservationDate = new Date(params.Date).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                } catch (e) {
+                    // Keep default value if parsing fails
+                }
+                
+                const statusBadgeClass = {
+                    'Pending': 'bg-warning',
+                    'Running': 'bg-info',
+                    'Completed': 'bg-success',
+                    'Failed': 'bg-danger',
+                    'Cancelled': 'bg-secondary'
+                }[task.Status] || 'bg-secondary';
+                
+                const timeClass = isOverdue ? 'text-danger' : 'text-muted';
+                const timeIcon = isOverdue ? 'fa-exclamation-triangle' : 'fa-clock';
+                
+                html += `
+                    <div class="list-group-item ${index === 0 ? 'border-start border-primary border-3' : ''}">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-mountain text-success me-2"></i>
+                                    <div>
+                                        <h6 class="mb-1">${task.Name}</h6>
+                                        <small class="text-muted">Task #${task.Id}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <div class="small text-muted">Reservation Date</div>
+                                    <div class="fw-bold">${reservationDate}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-end">
+                                    <div class="${timeClass}">
+                                        <i class="fas ${timeIcon}"></i>
+                                        <small>Executes ${scheduledDate.toLocaleString()}</small>
+                                    </div>
+                                    <span class="badge ${statusBadgeClass} mt-1">${task.Status}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            
+            // Add summary footer
+            html += `
+                <div class="mt-3 text-center">
+                    <small class="text-muted">
+                        Showing next ${upcomingTasks.length} upcoming reservation${upcomingTasks.length !== 1 ? 's' : ''}
+                    </small>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+            
+        } catch (error) {
+            console.error('Error loading upcoming reservations:', error);
+            container.innerHTML = `
+                <div class="alert alert-warning mb-0">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Unable to load upcoming reservations</strong>
+                    <br><small>Error: ${error.message}</small>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-outline-warning" onclick="loadUpcomingReservations()">
+                            <i class="fas fa-retry"></i> Try Again
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    // Form submission handler
+    document.getElementById('reservationForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        try {
+            // Get the reservation date
+            const reservationDate = document.getElementById('reservationDate').value;
+            if (!reservationDate) {
+                throw new Error('Please select a reservation date');
+            }
+            
+            // Calculate execution date (day before reservation) at 7 AM PST
+            const reservationDateObj = new Date(reservationDate + 'T00:00:00');
+            const executionDate = new Date(reservationDateObj);
+            executionDate.setDate(executionDate.getDate() - 1);
+            
+            // Create execution datetime at 7 AM PST
+            const executionDateTime = new Date(executionDate.getFullYear(), executionDate.getMonth(), executionDate.getDate(), 7, 0, 0, 0);
+            
+            // Convert to UTC for server
+            // Adjust for Pacific timezone offset
+            const isPDT = isPacificDaylightTime(executionDateTime);
+            const pacificOffsetHours = isPDT ? 7 : 8; // Hours to add to get UTC
+            const utcTime = new Date(executionDateTime.getTime() + (pacificOffsetHours * 60 * 60 * 1000));
+            
+            // Gather form data
+            const formData = {
+                name: document.getElementById('taskName').value,
+                description: document.getElementById('description').value,
+                scheduledTime: utcTime.toISOString(),
+                taskType: 'ReserveBuntzen',
+                parameters: JSON.stringify({
+                    Date: reservationDate,
+                    AuthToken: document.getElementById('authToken').value.trim()
+                }),
+                priority: parseInt(document.getElementById('priority').value),
+                createdBy: 'Reservation Form'
+            };
+
+            // Validate required fields
+            if (!formData.parameters.includes('Date') || !formData.parameters.includes('AuthToken')) {
+                throw new Error('Please fill in all required fields');
+            }
+
+            // Submit to API
+            const response = await fetch('/api/scheduledtasks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                showSuccess(result);
+            } else {
+                const error = await response.text();
+                showError('Failed to create task: ' + error);
+            }
+        } catch (error) {
+            showError('Error: ' + error.message);
+        }
+    });
+
+    function showSuccess(result) {
+        const resultHtml = `
+            <div class="alert alert-success">
+                <h6><i class="fas fa-check-circle"></i> Task Created Successfully!</h6>
+                <p class="mb-2"><strong>Task ID:</strong> ${result.Id}</p>
+                <p class="mb-2"><strong>Name:</strong> ${result.Name}</p>
+                <p class="mb-2"><strong>Scheduled:</strong> ${new Date(result.ScheduledTime).toLocaleString()}</p>
+                <p class="mb-2"><strong>Reservation Date:</strong> ${JSON.parse(result.Parameters).Date}</p>
+                <p class="mb-0"><strong>Status:</strong> <span class="badge bg-warning">${result.Status}</span></p>
+            </div>
+            <p class="text-muted">
+                <i class="fas fa-info-circle"></i>
+                Your reservation task has been scheduled and will be executed automatically. 
+                You can monitor its progress on the API Demo page.
+            </p>
+        `;
+        
+        document.getElementById('taskResult').innerHTML = resultHtml;
+        document.getElementById('resultsCard').style.display = 'block';
+        
+        // Scroll to results
+        document.getElementById('resultsCard').scrollIntoView({ behavior: 'smooth' });
+        
+        // Refresh the upcoming reservations list
+        setTimeout(() => {
+            loadUpcomingReservations();
+        }, 1000); // Small delay to allow the task to be processed
+    }
+
+    function showError(message) {
+        const errorHtml = `
+            <div class="alert alert-danger">
+                <h6><i class="fas fa-exclamation-triangle"></i> Error Creating Task</h6>
+                <p class="mb-0">${message}</p>
+            </div>
+        `;
+        
+        document.getElementById('taskResult').innerHTML = errorHtml;
+        document.getElementById('resultsCard').style.display = 'block';
+        
+        // Scroll to results
+        document.getElementById('resultsCard').scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+
+<!-- Add Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
