@@ -74,11 +74,11 @@ using (var scope = app.Services.CreateScope())
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     
     // Ensure wwwroot directory exists
-    var wwwrootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
-    if (!Directory.Exists(wwwrootPath))
+    var appWwwrootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+    if (!Directory.Exists(appWwwrootPath))
     {
-        Directory.CreateDirectory(wwwrootPath);
-        logger.LogInformation("Created wwwroot directory at: {Path}", wwwrootPath);
+        Directory.CreateDirectory(appWwwrootPath);
+        logger.LogInformation("Created wwwroot directory at: {Path}", appWwwrootPath);
     }
     
     // Initialize database
