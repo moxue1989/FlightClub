@@ -1,5 +1,7 @@
 using FlightClub.Services;
 using FlightClub.Services.TaskExecutors;
+using FlightClub.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +35,21 @@ builder.Services.AddSwaggerGen(c =>
     }
 });
 
+// Configure Entity Framework with SQLite
+// Database will be created in wwwroot directory
+var wwwrootPath = Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? $"Data Source={Path.Combine(wwwrootPath, "database.db")}";
+
+// Replace relative path with absolute path
+if (connectionString.Contains("wwwroot/database.db"))
+{
+    connectionString = $"Data Source={Path.Combine(wwwrootPath, "database.db")}";
+}
+
+builder.Services.AddDbContext<FlightClubDbContext>(options =>
+    options.UseSqlite(connectionString));
+
 // Register application services
 builder.Services.AddScoped<IScheduledTaskService, ScheduledTaskService>();
 
@@ -49,6 +66,24 @@ builder.Services.AddScoped<ITaskTriggerService, TaskTriggerService>();
 builder.Services.AddHostedService<TaskSchedulerService>();
 
 var app = builder.Build();
+
+// Ensure database is created and migrations are applied
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<FlightClubDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    
+    // Ensure wwwroot directory exists
+    var wwwrootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+    if (!Directory.Exists(wwwrootPath))
+    {
+        Directory.CreateDirectory(wwwrootPath);
+        logger.LogInformation("Created wwwroot directory at: {Path}", wwwrootPath);
+    }
+    
+    // Initialize database
+    await DatabaseInitializer.InitializeAsync(context, logger);
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

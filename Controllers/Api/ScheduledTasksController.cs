@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using FlightClub.Models.Api;
 using FlightClub.Services;
+using FlightClub.Data;
 using System.ComponentModel.DataAnnotations;
 
 namespace FlightClub.Controllers.Api;
@@ -11,13 +12,16 @@ namespace FlightClub.Controllers.Api;
 public class ScheduledTasksController : ControllerBase
 {
     private readonly IScheduledTaskService _scheduledTaskService;
+    private readonly FlightClubDbContext _context;
     private readonly ILogger<ScheduledTasksController> _logger;
 
     public ScheduledTasksController(
         IScheduledTaskService scheduledTaskService,
+        FlightClubDbContext context,
         ILogger<ScheduledTasksController> logger)
     {
         _scheduledTaskService = scheduledTaskService;
+        _context = context;
         _logger = logger;
     }
 
@@ -225,6 +229,26 @@ public class ScheduledTasksController : ControllerBase
         {
             _logger.LogError(ex, "Error deleting scheduled task {TaskId}", id);
             return StatusCode(500, "An error occurred while deleting the scheduled task");
+        }
+    }
+
+    /// <summary>
+    /// Gets database health information
+    /// </summary>
+    /// <returns>Database health status</returns>
+    [HttpGet("health")]
+    [ProducesResponseType(typeof(DatabaseHealthInfo), StatusCodes.Status200OK)]
+    public async Task<ActionResult<DatabaseHealthInfo>> GetHealth()
+    {
+        try
+        {
+            var healthInfo = await DatabaseInitializer.GetHealthInfoAsync(_context);
+            return Ok(healthInfo);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking database health");
+            return StatusCode(500, "An error occurred while checking database health");
         }
     }
 }

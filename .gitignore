@@ -42,3 +42,11 @@ bld/
 msbuild.log
 msbuild.err
 msbuild.wrn
+
+# Database files
+wwwroot/database.db
+wwwroot/database.db-shm
+wwwroot/database.db-wal
+*.db
+*.db-shm
+*.db-wal
