@@ -92,10 +92,10 @@ public class ReserveBuntzenExecutor : ITaskExecutor
             // Prepare reservation data following the exact bash script format
             var reservationData = new
             {
-                // catalogItemId = 11584, 
-                // placeId = 10672,
-                catalogItemId = 12196, 
-                placeId = 10671,
+                catalogItemId = 11584, 
+                placeId = 10672,
+                // catalogItemId = 12196, 
+                // placeId = 10671,
                 quantity = 1,
                 effectiveDateLtc = reservationDate.ToString("yyyy-MM-dd"),
                 vehicleMakeModel = "Lamborghini Gallardo",

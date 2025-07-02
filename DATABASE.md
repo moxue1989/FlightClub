@@ -71,8 +71,8 @@ The connection string is configured in `appsettings.json`:
 ## Security Considerations
 
 1. **Database File**: The database file is stored in `wwwroot` but is excluded from git via `.gitignore`
-2. **Parameter Obfuscation**: Sensitive parameters (like AuthTokens) are automatically obfuscated in API responses
-3. **Backups**: Consider implementing regular backups of the database file for production use
+2. **Backups**: Consider implementing regular backups of the database file for production use
+3. **Access Control**: Ensure proper access controls are in place for the database file in production environments
 
 ## Migration
 

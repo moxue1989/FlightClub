@@ -31,7 +31,10 @@ public class FlightClubDbContext : DbContext
                 .HasMaxLength(1000);
             
             entity.Property(e => e.ScheduledTime)
-                .IsRequired();
+                .IsRequired()
+                .HasConversion(
+                    v => v.ToUniversalTime(), // Convert to UTC when saving
+                    v => DateTime.SpecifyKind(v, DateTimeKind.Utc)); // Specify UTC when reading
             
             entity.Property(e => e.TaskType)
                 .IsRequired()
@@ -50,9 +53,15 @@ public class FlightClubDbContext : DbContext
             
             entity.Property(e => e.CreatedAt)
                 .IsRequired()
+                .HasConversion(
+                    v => v.ToUniversalTime(), // Convert to UTC when saving
+                    v => DateTime.SpecifyKind(v, DateTimeKind.Utc)) // Specify UTC when reading
                 .HasDefaultValueSql("datetime('now')");
             
-            entity.Property(e => e.UpdatedAt);
+            entity.Property(e => e.UpdatedAt)
+                .HasConversion(
+                    v => v.HasValue ? v.Value.ToUniversalTime() : (DateTime?)null, // Convert to UTC when saving
+                    v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : (DateTime?)null); // Specify UTC when reading
             
             entity.Property(e => e.CreatedBy)
                 .HasMaxLength(100);

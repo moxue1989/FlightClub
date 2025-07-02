@@ -158,84 +158,14 @@ public class ScheduledTaskService : IScheduledTaskService
             Id = task.Id,
             Name = task.Name,
             Description = task.Description,
-            ScheduledTime = task.ScheduledTime,
+            ScheduledTime = DateTime.SpecifyKind(task.ScheduledTime, DateTimeKind.Utc),
             TaskType = task.TaskType,
-            Parameters = ObfuscateParametersIfNeeded(task.Parameters, task.TaskType),
+            Parameters = task.Parameters,
             Status = task.Status,
             Priority = task.Priority,
-            CreatedAt = task.CreatedAt,
-            UpdatedAt = task.UpdatedAt,
+            CreatedAt = DateTime.SpecifyKind(task.CreatedAt, DateTimeKind.Utc),
+            UpdatedAt = task.UpdatedAt.HasValue ? DateTime.SpecifyKind(task.UpdatedAt.Value, DateTimeKind.Utc) : null,
             CreatedBy = task.CreatedBy
         };
-    }
-    
-    private static string? ObfuscateParametersIfNeeded(string? parameters, string taskType)
-    {
-        // Only obfuscate parameters for ReserveBuntzen tasks
-        if (string.IsNullOrEmpty(parameters) || !taskType.Equals("ReserveBuntzen", StringComparison.OrdinalIgnoreCase))
-        {
-            return parameters;
-        }
-        
-        try
-        {
-            // Parse the JSON parameters
-            var jsonDoc = System.Text.Json.JsonDocument.Parse(parameters);
-            var root = jsonDoc.RootElement;
-            
-            // Create a new JSON object with obfuscated AuthToken
-            var obfuscatedParams = new Dictionary<string, object>();
-            bool tokenObfuscated = false;
-            
-            foreach (var property in root.EnumerateObject())
-            {
-                if (property.Name.Equals("AuthToken", StringComparison.OrdinalIgnoreCase))
-                {
-                    // Obfuscate the auth token
-                    var tokenValue = property.Value.GetString();
-                    obfuscatedParams[property.Name] = ObfuscateToken(tokenValue);
-                    tokenObfuscated = true;
-                }
-                else
-                {
-                    // Keep other parameters as-is
-                    object paramValue = property.Value.ValueKind switch
-                    {
-                        System.Text.Json.JsonValueKind.String => property.Value.GetString() ?? "",
-                        System.Text.Json.JsonValueKind.Number => property.Value.TryGetInt32(out var intVal) ? intVal : property.Value.GetDouble(),
-                        System.Text.Json.JsonValueKind.True => true,
-                        System.Text.Json.JsonValueKind.False => false,
-                        System.Text.Json.JsonValueKind.Null => null!,
-                        _ => property.Value.GetRawText()
-                    };
-                    obfuscatedParams[property.Name] = paramValue;
-                }
-            }
-            
-            // Serialize back to JSON
-            var result = System.Text.Json.JsonSerializer.Serialize(obfuscatedParams);
-            
-            // Add a comment to indicate obfuscation was applied (for debugging)
-            if (tokenObfuscated)
-            {
-                // Note: This is just for internal tracking, not visible in the JSON
-                System.Diagnostics.Debug.WriteLine($"AuthToken obfuscated in ReserveBuntzen task parameters");
-            }
-            
-            return result;
-        }
-        catch (System.Text.Json.JsonException)
-        {
-            // If JSON parsing fails, return original parameters
-            return parameters;
-        }
-    }
-    
-    private static string ObfuscateToken(string? token)
-    {
-        if (string.IsNullOrEmpty(token) || token.Length <= 8)
-            return "[REDACTED]";
-        
-        return $"{token[..4]}...{token[^4..]}";
     }
 }
