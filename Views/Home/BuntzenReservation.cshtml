@@ -441,13 +441,20 @@
                 let reservationDate = 'Unknown';
                 try {
                     const params = JSON.parse(task.Parameters);
-                    reservationDate = new Date(params.Date).toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
+                    if (params.Date) {
+                        // Create date object and ensure it's valid
+                        const dateObj = new Date(params.Date + 'T00:00:00'); // Add time to avoid timezone issues
+                        if (!isNaN(dateObj.getTime())) {
+                            reservationDate = dateObj.toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            });
+                        }
+                    }
                 } catch (e) {
+                    console.warn('Error parsing task parameters for task', task.Id, ':', e);
                     // Keep default value if parsing fails
                 }
                 
@@ -470,21 +477,21 @@
                                     <i class="fas fa-mountain text-success me-2"></i>
                                     <div>
                                         <h6 class="mb-1">${task.Name}</h6>
-                                        <small class="text-muted">Task #${task.Id}</small>
+                                        <small class="text-muted">${task.Description || 'No description provided'}</small>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="text-center">
-                                    <div class="small text-muted">Reservation Date</div>
-                                    <div class="fw-bold">${reservationDate}</div>
+                                    <div class="small text-muted">Visit Date</div>
+                                    <div class="fw-bold text-primary">${reservationDate}</div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="text-end">
                                     <div class="${timeClass}">
                                         <i class="fas ${timeIcon}"></i>
-                                        <small>Executes ${scheduledDate.toLocaleString()}</small>
+                                        <small>Task runs ${scheduledDate.toLocaleDateString()}</small>
                                     </div>
                                     <span class="badge ${statusBadgeClass} mt-1">${task.Status}</span>
                                 </div>
