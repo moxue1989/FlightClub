@@ -1,5 +1,6 @@
 using FlightClub.Services;
 using FlightClub.Services.TaskExecutors;
+using FlightClub.Services.Security;
 using FlightClub.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -52,6 +53,7 @@ builder.Services.AddDbContext<FlightClubDbContext>(options =>
 
 // Register application services
 builder.Services.AddScoped<IScheduledTaskService, ScheduledTaskService>();
+builder.Services.AddScoped<IParameterObfuscationService, ParameterObfuscationService>();
 
 // Register task executors
 // builder.Services.AddScoped<ITaskExecutor, NotificationTaskExecutor>(); // DISABLED - Notification task type disabled

@@ -1,6 +1,7 @@
 using FlightClub.Models.Api;
 using FlightClub.Data;
 using Microsoft.EntityFrameworkCore;
+using FlightClub.Services.Security;
 
 namespace FlightClub.Services;
 
@@ -18,11 +19,16 @@ public class ScheduledTaskService : IScheduledTaskService
 {
     private readonly ILogger<ScheduledTaskService> _logger;
     private readonly FlightClubDbContext _context;
+    private readonly IParameterObfuscationService _obfuscationService;
 
-    public ScheduledTaskService(ILogger<ScheduledTaskService> logger, FlightClubDbContext context)
+    public ScheduledTaskService(
+        ILogger<ScheduledTaskService> logger, 
+        FlightClubDbContext context,
+        IParameterObfuscationService obfuscationService)
     {
         _logger = logger;
         _context = context;
+        _obfuscationService = obfuscationService;
     }
 
     public async Task<ScheduledTaskResponse> CreateTaskAsync(CreateScheduledTaskRequest request)
@@ -151,7 +157,7 @@ public class ScheduledTaskService : IScheduledTaskService
         return MapToResponse(task);
     }
 
-    private static ScheduledTaskResponse MapToResponse(ScheduledTask task)
+    private ScheduledTaskResponse MapToResponse(ScheduledTask task)
     {
         return new ScheduledTaskResponse
         {
@@ -160,7 +166,7 @@ public class ScheduledTaskService : IScheduledTaskService
             Description = task.Description,
             ScheduledTime = DateTime.SpecifyKind(task.ScheduledTime, DateTimeKind.Utc),
             TaskType = task.TaskType,
-            Parameters = task.Parameters,
+            Parameters = _obfuscationService.ObfuscateParameters(task.Parameters, task.TaskType),
             Status = task.Status,
             Priority = task.Priority,
             CreatedAt = DateTime.SpecifyKind(task.CreatedAt, DateTimeKind.Utc),

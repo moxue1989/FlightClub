@@ -27,7 +27,7 @@ FlightClub now includes a comprehensive task scheduling and execution system wit
   "description": "Reserve Buntzen Lake recreation area",
   "scheduledTime": "2025-07-02T10:00:00Z",
   "taskType": "ReserveBuntzen",
-  "parameters": "{\"date\":\"2025-07-15\",\"authToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"}",
+  "parameters": "{\"Date\":\"2025-07-15\",\"AuthToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"}",
   "priority": 1,
   "createdBy": "System"
 }
@@ -129,7 +129,7 @@ The system includes built-in task executors:
 #### ReserveBuntzenExecutor
 - **Task Type**: `ReserveBuntzen`
 - **Purpose**: Makes actual Buntzen Lake reservations using YodelPass API
-- **Parameters**: `{"date": "2025-07-15", "authToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}`
+- **Parameters**: `{"Date": "2025-07-15", "AuthToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}`
 - **Duration**: Variable (depends on API response times and retry logic)
 - **Features**: Real YodelPass API integration, cart management, automatic retry logic (up to 100 attempts), checkout processing
 
@@ -182,7 +182,7 @@ curl -X POST "https://localhost:7xxx/api/scheduledtasks" \
     "description": "Reserve Buntzen Lake for hiking",
     "scheduledTime": "2025-07-02T02:00:00Z",
     "taskType": "ReserveBuntzen",
-    "parameters": "{\"date\":\"2025-07-15\",\"authToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"}",
+    "parameters": "{\"Date\":\"2025-07-15\",\"AuthToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"}",
     "priority": 1
   }'
 ```
