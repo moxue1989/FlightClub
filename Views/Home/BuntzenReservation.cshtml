@@ -15,7 +15,7 @@
                 <div class="card-body">
                     <p class="text-muted mb-4">
                         Create a scheduled task to make a Buntzen Lake reservation through YodelPass API.
-                        The task will automatically execute at <strong>7:00 AM PST on the day before your reservation date</strong>.
+                        The task will automatically execute at <strong>7:00 AM on the day before your reservation date</strong>.
                     </p>
 
                     <form id="reservationForm">
@@ -69,7 +69,7 @@
                         <div class="alert alert-info" id="executionTimeAlert" style="display: none;">
                             <i class="fas fa-clock"></i>
                             <strong>Execution Schedule:</strong>
-                            <span id="executionTimeText">Task will execute at 7:00 AM PST on the day before your reservation.</span>
+                            <span id="executionTimeText">Task will execute at 7:00 AM on the day before your reservation.</span>
                         </div>
 
                         <div class="row">
@@ -202,21 +202,15 @@
         }
         
         try {
-            // Get the reservation date (this is in local date, no time component)
+            // Get the reservation date
             const reservationDate = new Date(reservationDateInput.value + 'T00:00:00');
             
             // Calculate execution date (day before reservation)
             const executionDate = new Date(reservationDate);
             executionDate.setDate(executionDate.getDate() - 1);
             
-            // Create execution datetime at 7 AM PST/PDT using proper timezone handling
-            // Create a date in Pacific timezone at 7 AM
-            const pacificTimeStr = executionDate.toISOString().split('T')[0] + 'T07:00:00';
-            const executionDateTime = new Date(pacificTimeStr);
-            
-            // Convert from Pacific to local timezone for display
-            const pacificOffset = getPacificTimezoneOffset(executionDateTime);
-            const localExecutionTime = new Date(executionDateTime.getTime() - (pacificOffset * 60 * 1000));
+            // Create execution datetime at 7 AM local time
+            const executionDateTime = new Date(executionDate.getFullYear(), executionDate.getMonth(), executionDate.getDate(), 7, 0, 0, 0);
             
             // Format dates for display
             const reservationDateStr = reservationDate.toLocaleDateString('en-US', {
@@ -233,34 +227,15 @@
                 day: 'numeric'
             });
             
-            // Format execution time in PST and local timezone
-            const pstTimeStr = executionDateTime.toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true,
-                timeZone: 'America/Los_Angeles'
-            });
-            
-            const localTimeStr = executionDateTime.toLocaleTimeString('en-US', {
+            // Format execution time
+            const executionTimeStr = executionDateTime.toLocaleTimeString('en-US', {
                 hour: 'numeric',
                 minute: '2-digit',
                 hour12: true
             });
             
-            // Get timezone abbreviations
-            const pstAbbr = isPacificDaylightTime(executionDateTime) ? 'PDT' : 'PST';
-            const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            const localAbbr = getTimezoneAbbreviation(localTimezone);
-            
             // Create the display text
-            let displayText = `Task will execute on <strong>${executionDateStr}</strong> at <strong>${pstTimeStr} ${pstAbbr}</strong>`;
-            
-            // Add local time conversion if different timezone
-            if (localTimezone !== 'America/Los_Angeles' && localTimezone !== 'America/Vancouver') {
-            displayText += ` (<strong>${localTimeStr} ${localAbbr}</strong>)`;
-            }
-            
-            displayText += ` to make your reservation for <strong>${reservationDateStr}</strong>.`;
+            const displayText = `Task will execute on <strong>${executionDateStr}</strong> at <strong>${executionTimeStr}</strong> to make your reservation for <strong>${reservationDateStr}</strong>.`;
             
             executionTimeText.innerHTML = displayText;
             executionTimeAlert.style.display = 'block';
@@ -269,63 +244,6 @@
             console.log('Error updating execution time display:', e);
             executionTimeAlert.style.display = 'none';
         }
-    }
-    
-    function getTimezoneAbbreviation(timezone) {
-        // Common timezone abbreviations
-        const abbreviations = {
-            'America/Los_Angeles': 'PST/PDT',
-            'America/New_York': 'EST/EDT',
-            'America/Chicago': 'CST/CDT',
-            'America/Denver': 'MST/MDT',
-            'America/Phoenix': 'MST',
-            'America/Anchorage': 'AKST/AKDT',
-            'Pacific/Honolulu': 'HST',
-            'America/Toronto': 'EST/EDT',
-            'America/Vancouver': 'PST/PDT',
-            'Europe/London': 'GMT/BST',
-            'Europe/Paris': 'CET/CEST',
-            'Asia/Tokyo': 'JST',
-            'Australia/Sydney': 'AEST/AEDT'
-        };
-        
-        return abbreviations[timezone] || 'Local';
-    }
-    
-    function getPacificTimezoneOffset(date) {
-        // Create a date in Pacific timezone
-        const utcTime = date.getTime();
-        const pacificTime = new Date(utcTime + (date.getTimezoneOffset() * 60000));
-        
-        // Pacific timezone is UTC-8 in standard time, UTC-7 in daylight time
-        const isDST = isPacificDaylightTime(date);
-        const pacificOffset = isDST ? -7 * 60 : -8 * 60; // minutes
-        
-        return pacificOffset;
-    }
-    
-    function isPacificDaylightTime(date) {
-        // More accurate DST calculation for Pacific timezone
-        const year = date.getFullYear();
-        
-        // DST starts on second Sunday in March
-        const marchSecondSunday = getSecondSunday(year, 2); // March is month 2 (0-indexed)
-        
-        // DST ends on first Sunday in November
-        const novemberFirstSunday = getFirstSunday(year, 10); // November is month 10
-        
-        return date >= marchSecondSunday && date < novemberFirstSunday;
-    }
-    
-    function getSecondSunday(year, month) {
-        const firstDay = new Date(year, month, 1);
-        const firstSunday = new Date(year, month, 1 + (7 - firstDay.getDay()) % 7);
-        return new Date(year, month, firstSunday.getDate() + 7);
-    }
-    
-    function getFirstSunday(year, month) {
-        const firstDay = new Date(year, month, 1);
-        return new Date(year, month, 1 + (7 - firstDay.getDay()) % 7);
     }
 
     function setReservationDate(days) {
@@ -558,24 +476,14 @@
             const executionDate = new Date(reservationDateObj);
             executionDate.setDate(executionDate.getDate() - 1);
             
-            // Create execution datetime at 7 AM Pacific Time
-            // Use proper timezone conversion to UTC
-            const executionDateStr = executionDate.toISOString().split('T')[0];
-            
-            // Create the Pacific time (7 AM PST/PDT)
-            const pacificTimeStr = `${executionDateStr}T07:00:00`;
-            const tempDate = new Date(pacificTimeStr);
-            
-            // Convert Pacific time to UTC
-            const isDST = isPacificDaylightTime(tempDate);
-            const pacificOffsetHours = isDST ? 7 : 8; // Hours to add to convert PST/PDT to UTC
-            const utcTime = new Date(tempDate.getTime() + (pacificOffsetHours * 60 * 60 * 1000));
+            // Create execution datetime at 7 AM local time
+            const executionDateTime = new Date(executionDate.getFullYear(), executionDate.getMonth(), executionDate.getDate(), 7, 0, 0, 0);
             
             // Gather form data
             const formData = {
                 name: document.getElementById('taskName').value,
                 description: document.getElementById('description').value,
-                scheduledTime: utcTime.toISOString(),
+                scheduledTime: executionDateTime.toISOString(),
                 taskType: 'ReserveBuntzen',
                 parameters: JSON.stringify({
                     Date: reservationDate,
