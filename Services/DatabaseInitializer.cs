@@ -17,15 +17,6 @@ public static class DatabaseInitializer
         {
             logger.LogInformation("Initializing database...");
 
-            // For development, we'll delete and recreate the database to ensure schema changes are applied
-            // In production, you'd want to use proper migrations
-            var databasePath = context.Database.GetConnectionString()?.Replace("Data Source=", "");
-            if (!string.IsNullOrEmpty(databasePath) && File.Exists(databasePath))
-            {
-                logger.LogInformation("Deleting existing database to apply schema changes...");
-                await context.Database.EnsureDeletedAsync();
-            }
-
             // Ensure database is created with new schema
             var created = await context.Database.EnsureCreatedAsync();
             
