@@ -162,7 +162,7 @@ public class ScheduledTaskService : IScheduledTaskService
             Description = task.Description,
             ScheduledTime = DateTime.SpecifyKind(task.ScheduledTime, DateTimeKind.Utc),
             TaskType = task.TaskType,
-            Parameters = task.Parameters,
+            Parameters = task.Parameters, // No obfuscation - return original parameters
             Status = task.Status,
             Priority = task.Priority,
             CreatedAt = DateTime.SpecifyKind(task.CreatedAt, DateTimeKind.Utc),

@@ -1,3 +1,4 @@
+using FlightClub.Models.Api;
 using FlightClub.Services.TaskExecutors;
 
 namespace FlightClub.Services;
@@ -66,7 +67,13 @@ public class TaskSchedulerService : BackgroundService
                 _logger.LogInformation("Found {Count} tasks due for execution", dueTasks.Count);
 
                 // Execute due tasks concurrently (with limit)
-                var executionTasks = dueTasks.Select(task => ExecuteTaskSafely(task.Id, taskExecutionService, cancellationToken));
+                var executionTasks = dueTasks.Select(task =>
+                {
+                    scheduledTaskService.UpdateTaskStatusAsync(task.Id, "Running");
+                    Task<String> completedTask = ExecuteTaskSafely(task, taskExecutionService, cancellationToken);
+                    scheduledTaskService.UpdateTaskStatusAsync(task.Id, completedTask.Result);
+                    return completedTask;
+                });
                 await Task.WhenAll(executionTasks);
             }
             else
@@ -80,44 +87,47 @@ public class TaskSchedulerService : BackgroundService
         }
     }
 
-    private async Task ExecuteTaskSafely(int taskId, ITaskExecutionService taskExecutionService, CancellationToken cancellationToken)
+    private async Task<String> ExecuteTaskSafely(ScheduledTaskResponse task, ITaskExecutionService taskExecutionService, CancellationToken cancellationToken)
     {
+
         // Wait for available execution slot
         await _executionSemaphore.WaitAsync(cancellationToken);
 
         try
         {
-            _logger.LogInformation("Starting background execution of task {TaskId}", taskId);
-            
+            _logger.LogInformation("Starting background execution of task {TaskId}", task.Id);
+
             using var taskCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             // Set a reasonable timeout for task execution (10 minutes)
             taskCts.CancelAfter(TimeSpan.FromMinutes(10));
 
-            var result = await taskExecutionService.ExecuteTaskAsync(taskId, taskCts.Token);
-            
+            var result = await taskExecutionService.ExecuteTaskAsync(task, taskCts.Token);
+
             if (result.Success)
             {
-                _logger.LogInformation("Task {TaskId} executed successfully in {Duration}ms", 
-                    taskId, result.Duration.TotalMilliseconds);
+                _logger.LogInformation("Task {TaskId} executed successfully in {Duration}ms",
+                    task.Id, result.Duration.TotalMilliseconds);
             }
             else
             {
-                _logger.LogWarning("Task {TaskId} execution failed: {Message}", 
-                    taskId, result.Message);
+                _logger.LogWarning("Task {TaskId} execution failed: {Message}",
+                    task.Id, result.Message);
             }
+            return result.Success ? "Completed" : "Failed";
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            _logger.LogInformation("Task {TaskId} execution cancelled due to service shutdown", taskId);
+            _logger.LogInformation("Task {TaskId} execution cancelled due to service shutdown", task.Id);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error executing task {TaskId}", taskId);
+            _logger.LogError(ex, "Unexpected error executing task {TaskId}", task.Id);
         }
         finally
         {
             _executionSemaphore.Release();
         }
+        return "Completed";
     }
 
     public override void Dispose()
@@ -162,8 +172,9 @@ public class TaskTriggerService : ITaskTriggerService
     public async Task<TaskExecutionResult> TriggerTaskAsync(int taskId, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Manual trigger requested for task {TaskId}", taskId);
-        
-        var result = await _taskExecutionService.ExecuteTaskAsync(taskId, cancellationToken);
+
+        var task = await _scheduledTaskService.GetTaskAsync(taskId);
+        var result = await _taskExecutionService.ExecuteTaskAsync(task, cancellationToken);
         
         _logger.LogInformation("Manual trigger completed for task {TaskId}. Success: {Success}", 
             taskId, result.Success);
