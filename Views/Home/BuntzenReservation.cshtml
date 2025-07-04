@@ -476,8 +476,8 @@
             const executionDate = new Date(reservationDateObj);
             executionDate.setDate(executionDate.getDate() - 1);
             
-            // Create execution datetime at 7 AM local time
-            const executionDateTime = new Date(executionDate.getFullYear(), executionDate.getMonth(), executionDate.getDate(), 7, 0, 0, 0);
+            // Create execution datetime at 6:59 AM local time
+            const executionDateTime = new Date(executionDate.getFullYear(), executionDate.getMonth(), executionDate.getDate(), 6, 59, 0, 0);
             
             // Gather form data
             const formData = {
