@@ -66,15 +66,13 @@ public class TaskSchedulerService : BackgroundService
             {
                 _logger.LogInformation("Found {Count} tasks due for execution", dueTasks.Count);
 
+                dueTasks.ForEach(
+                    task => scheduledTaskService.UpdateTaskStatusAsync(task.Id, "Running")
+                );
+
                 // Execute due tasks concurrently (with limit)
-                var executionTasks = dueTasks.Select(task =>
-                {
-                    scheduledTaskService.UpdateTaskStatusAsync(task.Id, "Running");
-                    Task<String> completedTask = ExecuteTaskSafely(task, taskExecutionService, cancellationToken);
-                    scheduledTaskService.UpdateTaskStatusAsync(task.Id, completedTask.Result);
-                    return completedTask;
-                });
-                await Task.WhenAll(executionTasks);
+                var tasks = dueTasks.Select(task => ExecuteTaskSafely(task, taskExecutionService, cancellationToken));
+                await Task.WhenAll(tasks);
             }
             else
             {
@@ -174,6 +172,10 @@ public class TaskTriggerService : ITaskTriggerService
         _logger.LogInformation("Manual trigger requested for task {TaskId}", taskId);
 
         var task = await _scheduledTaskService.GetTaskAsync(taskId);
+        if (task == null)
+        {
+            return TaskExecutionResult.CreateFailure($"Task not found");
+        }
         var result = await _taskExecutionService.ExecuteTaskAsync(task, cancellationToken);
         
         _logger.LogInformation("Manual trigger completed for task {TaskId}. Success: {Success}", 
