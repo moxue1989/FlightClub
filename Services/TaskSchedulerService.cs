@@ -13,7 +13,7 @@ public class TaskSchedulerService : BackgroundService
     private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(5); // Check every 5 seconds
     private readonly SemaphoreSlim _executionSemaphore;
     private readonly int _maxConcurrentTasks = 5; // Maximum concurrent task executions
-
+    private readonly HashSet<Task<string>> runningTasks = new HashSet<Task<string>>();
     public TaskSchedulerService(IServiceProvider serviceProvider, ILogger<TaskSchedulerService> logger)
     {
         _serviceProvider = serviceProvider;
@@ -56,7 +56,7 @@ public class TaskSchedulerService : BackgroundService
         var scheduledTaskService = scope.ServiceProvider.GetRequiredService<IScheduledTaskService>();
         var taskExecutionService = scope.ServiceProvider.GetRequiredService<ITaskExecutionService>();
 
-        try
+        do
         {
             // Get all pending tasks
             var pendingTasks = await scheduledTaskService.GetTasksAsync("Pending");
@@ -71,18 +71,29 @@ public class TaskSchedulerService : BackgroundService
                 );
 
                 // Execute due tasks concurrently (with limit)
-                var tasks = dueTasks.Select(task => ExecuteTaskSafely(task, taskExecutionService, cancellationToken));
-                await Task.WhenAll(tasks);
+                dueTasks.ForEach(task =>
+                {
+                    Task<string> runningTask = ExecuteTaskSafely(task, taskExecutionService, cancellationToken);
+                    runningTasks.Add(runningTask);
+                });
             }
             else
             {
-                _logger.LogDebug("No tasks due for execution at {Time}", DateTime.UtcNow);
+                _logger.LogDebug("No new tasks due for execution at {Time}", DateTime.UtcNow);
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error processing scheduled tasks");
-        }
+
+            // wait for any task to complete
+            if (runningTasks.Count != 0)
+            {
+
+                await Task.WhenAny(runningTasks);
+                foreach (var task in runningTasks.Where(task => task.IsCompleted))
+                {
+                    await scheduledTaskService.UpdateTaskStatusAsync(task.Id, task.Result);
+                    runningTasks.Remove(task);
+                }
+            }
+        } while (runningTasks.Count > 0);
     }
 
     private async Task<String> ExecuteTaskSafely(ScheduledTaskResponse task, ITaskExecutionService taskExecutionService, CancellationToken cancellationToken)
@@ -144,7 +155,7 @@ public interface ITaskTriggerService
     /// Manually trigger execution of a specific task
     /// </summary>
     Task<TaskExecutionResult> TriggerTaskAsync(int taskId, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Get execution statistics
     /// </summary>
@@ -177,17 +188,17 @@ public class TaskTriggerService : ITaskTriggerService
             return TaskExecutionResult.CreateFailure($"Task not found");
         }
         var result = await _taskExecutionService.ExecuteTaskAsync(task, cancellationToken);
-        
-        _logger.LogInformation("Manual trigger completed for task {TaskId}. Success: {Success}", 
+
+        _logger.LogInformation("Manual trigger completed for task {TaskId}. Success: {Success}",
             taskId, result.Success);
-        
+
         return result;
     }
 
     public async Task<TaskExecutionStats> GetExecutionStatsAsync()
     {
         var allTasks = await _scheduledTaskService.GetTasksAsync();
-        
+
         return new TaskExecutionStats
         {
             TotalTasks = allTasks.Count(),
