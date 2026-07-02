@@ -44,13 +44,6 @@ public class ScheduledTasksController : ControllerBase
                 return BadRequest(ModelState);
             }
 
-            // Validate that scheduled time is in the future
-            if (request.ScheduledTime <= DateTime.UtcNow)
-            {
-                ModelState.AddModelError(nameof(request.ScheduledTime), "Scheduled time must be in the future");
-                return BadRequest(ModelState);
-            }
-
             var result = await _scheduledTaskService.CreateTaskAsync(request);
             
             return CreatedAtAction(
@@ -135,13 +128,6 @@ public class ScheduledTasksController : ControllerBase
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
-            }
-
-            // Validate scheduled time if provided
-            if (request.ScheduledTime.HasValue && request.ScheduledTime <= DateTime.UtcNow)
-            {
-                ModelState.AddModelError(nameof(request.ScheduledTime), "Scheduled time must be in the future");
                 return BadRequest(ModelState);
             }
 

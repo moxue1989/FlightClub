@@ -67,7 +67,7 @@ public class TaskSchedulerService : BackgroundService
                 _logger.LogInformation("Found {Count} tasks due for execution", dueTasks.Count);
 
                 dueTasks.ForEach(
-                    task => scheduledTaskService.UpdateTaskStatusAsync(task.Id, "Running")
+                    task => scheduledTaskService.DeleteTaskAsync(task.Id)
                 );
 
                 // Execute due tasks concurrently (with limit)
@@ -79,17 +79,15 @@ public class TaskSchedulerService : BackgroundService
             }
             else
             {
-                _logger.LogDebug("No new tasks due for execution at {Time}", DateTime.UtcNow);
+                _logger.LogInformation("No new tasks due for execution at {Time}", DateTime.UtcNow);
             }
 
             // wait for any task to complete
             if (runningTasks.Count != 0)
             {
-
                 await Task.WhenAny(runningTasks);
                 foreach (var task in runningTasks.Where(task => task.IsCompleted))
                 {
-                    await scheduledTaskService.UpdateTaskStatusAsync(task.Id, task.Result);
                     runningTasks.Remove(task);
                 }
             }
