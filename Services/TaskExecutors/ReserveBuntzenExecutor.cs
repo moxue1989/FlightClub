@@ -103,16 +103,20 @@ public class ReserveBuntzenExecutor : ITaskExecutor
                 vehicleState = "BC",
                 sourceScopeId = 14
             };
-            
+
+            string formattedToken = authToken.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) 
+                ? authToken.Replace("Bearer ", "", StringComparison.OrdinalIgnoreCase).Trim()
+                : authToken.Trim();
+
             // Step 1: Add item to cart with retry logic
-            var cartSuccess = await AddItemToCart(cartUrl, reservationData, authToken, cancellationToken);
+            var cartSuccess = await AddItemToCart(cartUrl, reservationData, formattedToken, cancellationToken);
             if (!cartSuccess.Success)
             {
                 return new BuntzenReservationResult { Status = cartSuccess.ErrorMessage };
             }
             
             // Step 2: Checkout
-            return await ProcessCheckout(checkoutUrl, authToken, cancellationToken);
+            return await ProcessCheckout(checkoutUrl, formattedToken, cancellationToken);
         }
         catch (Exception ex)
         {
